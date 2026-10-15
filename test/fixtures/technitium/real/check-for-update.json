@@ -1,0 +1,8 @@
+{
+  "response": {
+    "dnsServerEnableCheckForUpdate": true,
+    "updateAvailable": false
+  },
+  "server": "dns-server",
+  "status": "ok"
+}

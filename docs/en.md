@@ -1,61 +1,189 @@
-# Demo Devices Template
+# Technitium DNS
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Follow and control your [Technitium DNS Server](https://technitium.com/dns/)
+from Gladys, over your local network: pause its blocking for five minutes from
+the dashboard when a website breaks, see its queries of the last hour and of
+the last day, count its DHCP leases, and know when it stops answering or when
+an update is out.
 
-## What you get
+> **Tested against a real Technitium DNS Server 15** (the official Docker
+> image), not yet with a real Gladys installation: feedback welcome. If
+> something does not work as described, please say so on the
+> [Gladys forum](https://community.gladysassistant.com) or in the
+> [issues](https://github.com/guim31/gladys-technitium/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- Gladys Assistant 5.1.0 or later (5.2.0 or later for the _Pause…_ button of
+  the widget).
+- **Technitium DNS Server** 15 or later, its web console reachable from Gladys
+  (port 5380 by default).
+- An **API token**. In the web console, open the user menu (top right) →
+  **Create API Token**, type your password and a name (for example `gladys`),
+  then copy the token shown. The token does not expire; delete it from
+  **Administration** → **Sessions** to revoke it.
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+The token acts as its user. The `admin` user can do everything. To limit it,
+create a dedicated user in **Administration** → **Users** and give its group
+these permissions: **Dashboard** (view), **Settings** (view; modify to pause
+the blocking), **Cache** (delete, for the cache action), **DHCP Server**
+(view, optional: without it, no DHCP leases).
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Set up
 
-## Actions
+1. Install the integration from the Gladys catalog.
+2. In **Configuration**, enter the **Address** of your server (for example
+   `192.168.1.2`: port 5380 is added; or the full address of its web console,
+   such as `https://dns.example.net`), its **API token**, and optionally a
+   **Name**. Two or three servers? Fill in the _Second server_ and _Third
+   server_ sections too.
+3. Save, then click **Test the connection**: the message under the button says,
+   for each server, whether it answers, its version and the state of its
+   blocking.
+4. Open the **Discover** tab: one device per server. Click **Add**, pick a
+   room, save.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+Options:
 
-## Scenes
+- **Accept self-signed certificates**: for an `https://` address whose
+  certificate the server signed itself. Leave it off for `http://` addresses.
+- **Refresh interval**: how often the servers are read, from 30 seconds to 5
+  minutes (1 minute by default).
+- **Turning the blocking switch off**: what the switch of the device does when
+  you turn it off: pause the blocking for 5 minutes (default), 15, 30 or 60
+  minutes, or disable it until you turn it back on.
+- **Language of the feature names**: English, French, German or Spanish. The
+  names are given when a device is added (French by default).
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+## The device of each server
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+| Feature                 | What it is                                                            |
+| ----------------------- | --------------------------------------------------------------------- |
+| Blocking                | Switch: on, the server blocks the listed domains; off, it lets all in |
+| DNS queries (last hour) | Queries received over the last 60 minutes                             |
+| DNS queries (24 h)      | Queries received over the last day                                    |
+| Blocked queries (24 h)  | Queries blocked over the last day                                     |
+| Share blocked (24 h)    | Share of the queries blocked, in %, rounded                           |
+| Clients (24 h)          | Devices that used the server over the last day                        |
+| Zones                   | Zones the server hosts (its own domains)                              |
+| Blocked domains         | Domains on the block lists, plus those you blocked by hand            |
+| Update available        | 1 when a newer Technitium version is out, else 0                      |
+| Version                 | The installed version                                                 |
+| DHCP leases             | Leases of the enabled DHCP scopes (only when the DHCP server is used) |
+
+The day is the one of the Technitium dashboard (_Last Day_): the 24 full hours
+before the current one, so it lags up to an hour behind. The badge of the
+device shows **Local** when the server answers and **Unreachable** when it
+does not. Enabling or disabling a DHCP scope adds or removes the _DHCP leases_
+feature: Gladys then offers to **Update** the device in the Discover tab.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+Add the **Technitium DNS** widget to a dashboard. By default it shows all your
+servers together; choose one in its settings to show only that one. Pausing a
+single server out of two changes nothing: your devices then ask the other one.
+
+The widget shows the queries, the blocked queries and the share blocked over
+the last day, the state of each server (blocking, paused with the minutes left,
+disabled, unreachable), the queries of the last hour, the clients, the blocked
+domains, the DHCP leases and the available update. Its buttons:
+
+- **Pause 5 min** and **Pause 30 min**: pause the blocking right away;
+- **Pause…**: opens a small form to type the duration in minutes (Gladys 5.2.0
+  or later; an older Gladys answers that it needs an update);
+- **Resume**: turns the blocking back on. It shows a check mark while the
+  blocking is on everywhere.
+
+## Scenes
+
+### Triggers
+
+- **Technitium blocking paused**: the blocking was turned off, from Gladys or
+  from elsewhere (the web console, another tool). Filter by server and by
+  origin (_From Gladys_ or _Outside Gladys_). The actions can read the name of
+  the server and the length of the pause in minutes (`duration_minutes`, 0
+  when it has no end).
+- **Technitium blocking resumed**: the blocking is on again. The origin tells
+  whether the pause ended on its own (_End of the pause_), from Gladys or from
+  elsewhere; `paused_minutes` says how long it lasted.
+- **Technitium update available**: a new version of Technitium DNS Server is
+  out. Announced once per version, even across restarts. `version` is the new
+  version, `current_version` the installed one.
+- **Technitium no longer answers**: a server did not answer two reads in a row
+  (the second one 15 seconds after the first). The DNS of your home may be
+  down. `error` says why, in the language of the configuration.
+- **Technitium answers again**: it is back; `down_minutes` says after how long.
+
+A refused token does not count as "no longer answers": the Configuration
+screen reports it.
+
+### Actions
+
+- **Pause Technitium blocking**: pauses the blocking on one server, or on all
+  of them when the field is left empty, for a number of minutes (5 by default,
+  0 until resumed, one day at most). The following actions can read how many
+  servers were paused.
+- **Resume Technitium blocking**: turns the blocking back on, on one server or
+  all of them.
+- **Flush the Technitium DNS cache**: empties the DNS cache, for example after
+  changing a record, so the next queries are answered afresh.
+- **Read the Technitium statistics**: reads the queries of the last day into a
+  sentence, such as "In the last 24 hours, 12,345 DNS queries, 1,234 blocked
+  (10 %). Last hour: 456 queries.", in the language of the configuration. The
+  following actions can send it (`sentence`) or use the figures
+  (`queries_last_day`, `blocked_last_day`, `blocked_percent`,
+  `queries_last_hour`, `blocking_enabled`).
+
+The _Blocking_ switch can also be used with the standard Gladys action that
+controls a device.
+
+### Scene ideas
+
+- **Morning report**: every day at 8:00, _Read the Technitium statistics_, then
+  send the `sentence` output in a message.
+- **DNS alert**: _Technitium no longer answers_ → send a message "Technitium
+  {{triggerEvent.data.server}} does not answer:
+  {{triggerEvent.data.error}}". And _Technitium answers again_ → "back after
+  {{triggerEvent.data.down_minutes}} min".
+- **Safety net**: a scene every evening at 20:00 with _Resume Technitium
+  blocking_, so a switch turned off "until turned back on" never stays off all
+  night.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"API token refused"**: the token was deleted, or mistyped. Create a new one
+  and paste it into Gladys.
+- **"access denied"**: the user of the token lacks a permission (see _What you
+  need_). Reading needs Dashboard and Settings (view); pausing needs Settings
+  (modify).
+- **"no Technitium server at this address"**: something else answers there.
+  The web console listens on port 5380 by default: enter `192.168.1.2`, or
+  `http://192.168.1.2:5380`.
+- **"certificate refused"**: you entered an `https://` address; tick _Accept
+  self-signed certificates_, or use the `http://` address.
+- **"the address redirects"**: the web console sends HTTP visitors to HTTPS;
+  enter the `https://` address.
+- **"does not answer"**: check that the web console opens from a computer on
+  the network of Gladys. Names ending in `.local` usually do not work inside
+  the integration: use the IP address.
+- Logs: on the page of the integration in Gladys, or `docker logs` on the host.
+  They show the start, each server lost and back, the problems (once each, not
+  at every reading) and your commands. Start the container with
+  `LOG_LEVEL=debug` to see every reading and every retry. Your token never
+  appears in the logs.
+
+## Limits
+
+- One integration handles up to three servers. A Technitium cluster is seen
+  server by server; the pause applies to the server you target (Technitium
+  syncs it to the other nodes of a cluster).
+- The integration reads each server once per refresh interval (five small
+  requests) and asks it to check for updates every six hours: no quota is at
+  risk.
+- The share blocked is rounded in the device (Gladys has no decimal
+  percentage sensor); the widget shows one decimal.
+- No presence detection from the DHCP leases: Gladys has other ways to do it.
+- The integration does not manage the zones, the block lists, the allowed or
+  blocked domains, nor the DHCP scopes: use the web console for that.
+
+This integration is not affiliated with Technitium.

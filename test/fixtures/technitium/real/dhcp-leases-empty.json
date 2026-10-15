@@ -1,0 +1,7 @@
+{
+  "response": {
+    "leases": []
+  },
+  "server": "dns-server",
+  "status": "ok"
+}
