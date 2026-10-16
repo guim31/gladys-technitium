@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-16
+
 ### Added
 
 - One Gladys device per Technitium DNS Server (up to three), read over the
@@ -29,4 +31,5 @@ the notes of the version's GitHub Release.
   server and the problem.
 - Every text in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-technitium/commits/main
+[Unreleased]: https://github.com/guim31/gladys-technitium/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-technitium/releases/tag/v1.0.0
