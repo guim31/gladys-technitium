@@ -80,14 +80,12 @@ export function parseMinutes(raw, fallback = DEFAULT_PAUSE_MINUTES) {
   if (!Number.isFinite(number) || number < 0) {
     return fallback;
   }
-  return Math.min(MAX_PAUSE_MINUTES, Math.round(number));
+  // Any positive duration pauses: rounding 0.4 down would mean "until resumed".
+  return number === 0 ? 0 : Math.min(MAX_PAUSE_MINUTES, Math.max(1, Math.round(number)));
 }
 
 const signature = (server, config) =>
   JSON.stringify([server.url, server.token, config.allowSelfSigned]);
-
-/** An error of a DHCP call that only means "no DHCP to show". */
-const noDhcp = (err) => err.kind === ERROR_KINDS.DENIED || err.kind === ERROR_KINDS.HTTP;
 
 export class TechnitiumHub {
   /**
@@ -111,7 +109,7 @@ export class TechnitiumHub {
     this.records = new Map();
     this.transports = new Map();
     this.connection = null;
-    this.saved = { announcedUpdates: {} };
+    this.saved = { announcedUpdates: {}, staleTill: {} };
     /** Whether the published device of a slot carries the DHCP feature. */
     this.dhcpPublished = new Map();
     this.pollTimer = null;
@@ -147,11 +145,10 @@ export class TechnitiumHub {
 
   async start(config) {
     const saved = await this.store.load();
+    const object = (value) => (value && typeof value === 'object' ? value : {});
     this.saved = {
-      announcedUpdates:
-        saved.announcedUpdates && typeof saved.announcedUpdates === 'object'
-          ? saved.announcedUpdates
-          : {},
+      announcedUpdates: object(saved.announcedUpdates),
+      staleTill: object(saved.staleTill),
     };
     await this.reconfigure(config);
   }
@@ -215,7 +212,9 @@ export class TechnitiumHub {
       downSince: null,
       pausedAt: null,
       // End of a cancelled pause that Technitium may still report (src/technitium/model.js).
-      staleTill: null,
+      staleTill: Number(this.saved.staleTill[server.slot]) || null,
+      // Bumped by each command: a read started before it must not undo it.
+      generation: 0,
       ownChangeUntil: 0,
       updateAt: 0,
       polling: null,
@@ -315,6 +314,7 @@ export class TechnitiumHub {
   async read(record, { update }) {
     const due = update || this.now() - record.updateAt >= this.timings.updateMs;
     const { client } = record;
+    const generation = record.generation;
     try {
       const [settings, hour, day, updateInfo, dhcp] = await Promise.all([
         client.getSettings(),
@@ -337,18 +337,27 @@ export class TechnitiumHub {
           `${this.label(record)}: update check failed: ${updateInfo.message}`,
         );
       }
-      let dhcpLeases = null;
+      let dhcpLeases;
       if (dhcp instanceof Error) {
-        if (!dhcp.kind || !noDhcp(dhcp)) {
+        if (!dhcp.kind) {
           throw dhcp;
         }
-        // A token without the DHCP permission, or no DHCP: nothing to show.
+        // A token without the DHCP permission: nothing to show. Another
+        // error is a blip: keep the last value, so the feature does not flap.
+        dhcpLeases = dhcp.kind === ERROR_KINDS.DENIED ? null : record.snapshot.dhcpLeases;
         logger.debug(`${this.label(record)}: DHCP not read: ${dhcp.message}`);
       } else {
         dhcpLeases = parseDhcp(dhcp[0], dhcp[1]);
       }
+      const read = parseSettings(settings, this.now(), record.staleTill);
+      if (record.generation !== generation) {
+        // A command changed the blocking while this read was running: its
+        // answer is newer than the settings read here.
+        read.blocking = record.snapshot.blocking;
+        read.pauseEndsAt = record.snapshot.pauseEndsAt;
+      }
       return await this.applySuccess(record, {
-        ...parseSettings(settings, this.now(), record.staleTill),
+        ...read,
         hour: parseStats(hour),
         day: parseStats(day),
         update: updateSnapshot,
@@ -686,20 +695,24 @@ export class TechnitiumHub {
             throw err;
           }
           logger.warn(`${this.label(record)}: ${describe} failed: ${err.message}`);
-          await this.applyFailure(record, err);
-          return null;
+          // A refused command (missing permission…) says nothing about the
+          // server being reachable: only silence or a refused token change its state.
+          if (err.kind === ERROR_KINDS.UNREACHABLE || err.kind === ERROR_KINDS.AUTH) {
+            await this.applyFailure(record, err);
+          }
+          return err;
         }
       }),
     );
     await this.afterChanges(true);
-    const done = results.filter(Boolean);
+    const done = results.filter((result) => !(result instanceof Error));
     if (done.length === 0) {
-      const [record] = records;
+      const [error] = results;
       throw new Error(
-        records.length === 1 && record.error
+        records.length === 1
           ? labelled(
-              serverName(record.server),
-              pick(ERROR_TEXT[record.error.kind], this.config.language),
+              serverName(records[0].server),
+              pick(ERROR_TEXT[error.kind], this.config.language),
               this.config.language,
             )
           : pick(ACTION_TEXT.failed, this.config.language),
@@ -710,6 +723,7 @@ export class TechnitiumHub {
 
   /** Apply a new blocking state answered by a command, without waiting for the next read. */
   async applyBlocking(record, blocking, pauseEndsAt) {
+    record.generation += 1;
     record.ownChangeUntil = this.now() + this.timings.ownChangeMs;
     const { reachable: _reachable, ...known } = record.snapshot;
     await this.applySuccess(
@@ -742,7 +756,7 @@ export class TechnitiumHub {
         await record.client.setBlocking(true);
         const answer = await record.client.setBlocking(false);
         // The end of the cancelled pause, still reported: ignore it from now on.
-        record.staleTill = parsePauseEnd(answer);
+        this.setStaleTill(record, parsePauseEnd(answer));
         await this.applyBlocking(record, 'disabled', null);
       },
     );
@@ -753,9 +767,26 @@ export class TechnitiumHub {
   async resume(deviceExternalId) {
     const done = await this.onServers(deviceExternalId, 'blocking resumed', async (record) => {
       await record.client.setBlocking(true);
+      // Technitium keeps reporting the end of the cancelled pause if the
+      // blocking is turned off again before it: not a pause any more.
+      if (record.snapshot.pauseEndsAt) {
+        this.setStaleTill(record, record.snapshot.pauseEndsAt);
+      }
       await this.applyBlocking(record, 'enabled', null);
     });
     return done.length;
+  }
+
+  /** Remember the end of a cancelled pause, across restarts (until it is past). */
+  setStaleTill(record, till) {
+    record.staleTill = till;
+    const slot = String(record.server.slot);
+    if (till && till > this.now()) {
+      this.saved.staleTill[slot] = till;
+    } else {
+      delete this.saved.staleTill[slot];
+    }
+    this.store.save(this.saved);
   }
 
   /** Empty the DNS cache of the targeted servers. */

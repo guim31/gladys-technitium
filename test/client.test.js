@@ -70,12 +70,15 @@ test('something else at the address: not a Technitium server', async () => {
     request: async () => ({ status: 200, headers: {}, body: '<!DOCTYPE html>' }),
   });
   await rejectsWith(html.getSettings(), ERROR_KINDS.NOT_TECHNITIUM);
-  const broken = new TechnitiumClient({
-    url: URL,
-    token: TOKEN,
-    request: async () => ({ status: 502, headers: {}, body: 'Bad gateway' }),
-  });
-  await rejectsWith(broken.getSettings(), ERROR_KINDS.HTTP);
+  const answer = (status) =>
+    new TechnitiumClient({
+      url: URL,
+      token: TOKEN,
+      request: async () => ({ status, headers: {}, body: 'Bad gateway' }),
+    });
+  // A reverse proxy whose Technitium is down: the server does not answer.
+  await rejectsWith(answer(502).getSettings(), ERROR_KINDS.UNREACHABLE);
+  await rejectsWith(answer(400).getSettings(), ERROR_KINDS.HTTP);
 });
 
 test('network errors: unreachable, certificate refused, redirect', async () => {

@@ -519,6 +519,9 @@ test('pause durations typed in a scene', () => {
   assert.equal(parseMinutes(0), 0);
   assert.equal(parseMinutes(99999), 1440);
   assert.equal(parseMinutes(-1), 5);
+  // A positive duration never becomes "until resumed".
+  assert.equal(parseMinutes(0.4), 1);
+  assert.equal(parseMinutes('0,3'), 1);
   assert.equal(parseMinutes('soon'), 5);
   assert.equal(parseMinutes(undefined), 5);
   assert.equal(parseMinutes(null, 30), 30);
@@ -541,4 +544,73 @@ test('a server removed while it is being read publishes nothing', async (t) => {
   await w.fake.configUpdated({ server_1_url: '' });
   await reading;
   assert.equal(w.fake.states.length, sent);
+});
+
+test('a read started before a command does not undo it', async (t) => {
+  const w = await world(t);
+  await createAll(w);
+  const original = w.server.handle.bind(w.server);
+  let release;
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  // The update check of this read is slow; its settings say "enabled".
+  w.server.handle = (url, options) =>
+    url.includes('/api/user/checkForUpdate')
+      ? held.then(() => original(url, options))
+      : original(url, options);
+  const reading = w.hub.pollAll({ update: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  await w.fake.sceneAction('pause_blocking', { minutes: 5 });
+  release();
+  await reading;
+  assert.equal(w.fake.lastState(featureId(w.gladys, 'blocking')), 0);
+  assert.deepEqual(events(w, TRIGGERS.RESUMED), []);
+  assert.equal(events(w, TRIGGERS.PAUSED).length, 1);
+});
+
+test('resume, then the blocking turned off in the console: off, not a pause', async (t) => {
+  const w = await world(t);
+  await w.fake.sceneAction('pause_blocking', { minutes: 60 });
+  w.clock.advance(5 * 60_000);
+  await w.fake.sceneAction('resume_blocking', {});
+  w.server.setBlocking(false);
+  await w.hub.pollAll();
+  assert.equal(events(w, TRIGGERS.PAUSED).at(-1).data.duration_minutes, 0);
+  assert.equal(w.hub.pauseMinutesLeft(w.hub.records.get(1)), null);
+
+  // Still known after a restart (the stale end is kept under /data).
+  await w.app.stop();
+  const again = await createWorld({
+    clock: w.clock,
+    servers: { [URL_1]: w.server },
+    dataDir: w.dataDir,
+  });
+  t.after(() => again.app.stop());
+  assert.equal(again.hub.pauseMinutesLeft(again.hub.records.get(1)), null);
+});
+
+test('a command refused for a permission does not mark the server unreachable', async (t) => {
+  const w = await world(t);
+  w.server.denied = ['/api/settings/temporaryDisableBlocking'];
+  const ack = await w.fake.sceneAction('pause_blocking', { minutes: 5 });
+  assert.equal(ack.success, false);
+  assert.equal(ack.error, 'Technitium: access denied: the token user lacks a permission');
+  assert.equal(w.fake.transports.at(-1).transport, 'local');
+  assert.deepEqual(w.fake.connectionStatus, { connected: true });
+});
+
+test('a passing DHCP error keeps the leases feature', async (t) => {
+  const clock = createClock();
+  const server = new FakeTechnitium({ now: clock.now, dhcp: true });
+  const w = await world(t, { clock, servers: { [URL_1]: server } });
+  const published = w.fake.discoveredDevices;
+  const original = server.handle.bind(server);
+  server.handle = (url, options) =>
+    url.includes('/api/dhcp/leases')
+      ? { status: 200, headers: {}, body: JSON.stringify({ status: 'error', errorMessage: 'x' }) }
+      : original(url, options);
+  await w.hub.pollAll();
+  assert.equal(w.fake.discoveredDevices, published, 'not published again');
+  assert.equal(w.fake.lastState(featureId(w.gladys, 'dhcp_leases')), 3);
 });

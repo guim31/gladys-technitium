@@ -1,8 +1,10 @@
 // -----------------------------------------------------------------------------
 // Small persistence under /data (the only writable path of the container): the
-// updates already announced by the "Technitium update available" trigger, so a
-// restart does not announce them again. Losing the file is harmless: the
-// pending updates are announced once more.
+// update already announced by the "Technitium update available" trigger, so a
+// restart does not announce it again, and the end of a cancelled pause that
+// Technitium still reports (src/technitium/model.js). Losing the file is
+// harmless: an update is announced once more, a stale pause end shows a
+// countdown until it passes.
 // (Adapted from guim31/gladys-wled.)
 // -----------------------------------------------------------------------------
 

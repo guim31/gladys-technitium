@@ -121,8 +121,13 @@ export class FakeTechnitium {
         if (!Number.isInteger(minutes)) {
           return json(200, fixture('real/error'));
         }
+        // minutes=0: the timer fires at once, as on the real server.
         this.setBlocking(false, minutes);
-        return ok({ temporaryDisableBlockingTill: new Date(this.pauseEnd).toISOString() });
+        const till = new Date(this.pauseEnd ?? this.now()).toISOString();
+        if (minutes <= 0) {
+          this.setBlocking(true);
+        }
+        return ok({ temporaryDisableBlockingTill: till });
       }
       case '/api/dashboard/stats/get':
         if (searchParams.get('type') === 'LastHour') {

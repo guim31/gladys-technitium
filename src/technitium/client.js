@@ -129,8 +129,13 @@ export class TechnitiumClient {
     if (!data || typeof data !== 'object' || typeof data.status !== 'string') {
       // A 404 is the answer of a Technitium server to an unknown path too, but
       // every path used here exists since version 10: whatever answered is not one.
+      // A 5xx without JSON is a reverse proxy whose Technitium is down: silence.
       throw new TechnitiumError(
-        status === 200 || status === 404 ? ERROR_KINDS.NOT_TECHNITIUM : ERROR_KINDS.HTTP,
+        status >= 500
+          ? ERROR_KINDS.UNREACHABLE
+          : status === 200 || status === 404
+            ? ERROR_KINDS.NOT_TECHNITIUM
+            : ERROR_KINDS.HTTP,
         `${path} answered HTTP ${status} without the Technitium JSON`,
         { status },
       );

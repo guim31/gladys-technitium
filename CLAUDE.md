@@ -229,6 +229,14 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   **reste rapporté** par `settings/get` après l'annulation (tant que l'échéance n'est pas passée
   et que le blocage est éteint) : l'échéance périmée est mémorisée (`record.staleTill`) et
   ignorée. `minutes=0` rallume aussitôt : ne jamais l'envoyer.
+- L'échéance périmée vient aussi d'une **reprise** depuis Gladys (`resume` la mémorise) ; elle est
+  **gardée dans `/data`** (`staleTill`), sinon un redémarrage afficherait un faux compte à rebours.
+- **Course lecture/commande** : une lecture lancée avant une commande (pause, reprise) peut finir
+  après elle, avec l'ancien état (le `checkForUpdate` peut prendre 10 s). `record.generation`,
+  incrémenté par chaque commande, fait garder l'état de la commande. Une commande refusée pour une
+  permission ne marque pas le serveur injoignable ; un 5xx sans JSON (proxy inverse devant un
+  Technitium arrêté) compte comme injoignable. Une erreur passagère du DHCP garde la dernière
+  valeur (sinon la fonctionnalité apparaît et disparaît).
 - **Statistiques** : `LastHour` = 60 minutes glissantes ; `LastDay` = les 24 heures **pleines
   avant l'heure en cours** (`StatsManager.GetLastDayHourWiseStats`) : le jour a jusqu'à une heure
   de retard, et vaut 0 sur un serveur qui démarre. Les compteurs instantanés (`zones`,
