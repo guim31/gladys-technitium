@@ -1,0 +1,197 @@
+{
+  "response": {
+    "stats": {
+      "totalQueries": 0,
+      "totalNoError": 0,
+      "totalServerFailure": 0,
+      "totalNxDomain": 0,
+      "totalRefused": 0,
+      "totalAuthoritative": 0,
+      "totalRecursive": 0,
+      "totalCached": 0,
+      "totalBlocked": 0,
+      "totalDropped": 0,
+      "totalClients": 0,
+      "zones": 0,
+      "cachedEntries": 9,
+      "allowedZones": 0,
+      "blockedZones": 1,
+      "allowListZones": 0,
+      "blockListZones": 0
+    },
+    "mainChartData": {
+      "labelFormat": "MM/DD HH:00",
+      "labels": [
+        "2026-10-15T00:00:00.0000000Z",
+        "2026-10-15T01:00:00.0000000Z",
+        "2026-10-15T02:00:00.0000000Z",
+        "2026-10-15T03:00:00.0000000Z",
+        "2026-10-15T04:00:00.0000000Z",
+        "2026-10-15T05:00:00.0000000Z",
+        "2026-10-15T06:00:00.0000000Z",
+        "2026-10-15T07:00:00.0000000Z",
+        "2026-10-15T08:00:00.0000000Z",
+        "2026-10-15T09:00:00.0000000Z",
+        "2026-10-15T10:00:00.0000000Z",
+        "2026-10-15T11:00:00.0000000Z",
+        "2026-10-15T12:00:00.0000000Z",
+        "2026-10-15T13:00:00.0000000Z",
+        "2026-10-15T14:00:00.0000000Z",
+        "2026-10-15T15:00:00.0000000Z",
+        "2026-10-15T16:00:00.0000000Z",
+        "2026-10-15T17:00:00.0000000Z",
+        "2026-10-15T18:00:00.0000000Z",
+        "2026-10-15T19:00:00.0000000Z",
+        "2026-10-15T20:00:00.0000000Z",
+        "2026-10-15T21:00:00.0000000Z",
+        "2026-10-15T22:00:00.0000000Z",
+        "2026-10-15T23:00:00.0000000Z"
+      ],
+      "datasets": [
+        {
+          "label": "Total",
+          "backgroundColor": "rgba(102, 153, 255, 0.1)",
+          "borderColor": "rgb(102, 153, 255)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "No Error",
+          "backgroundColor": "rgba(92, 184, 92, 0.1)",
+          "borderColor": "rgb(92, 184, 92)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Server Failure",
+          "backgroundColor": "rgba(217, 83, 79, 0.1)",
+          "borderColor": "rgb(217, 83, 79)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "NX Domain",
+          "backgroundColor": "rgba(120, 120, 120, 0.1)",
+          "borderColor": "rgb(120, 120, 120)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Refused",
+          "backgroundColor": "rgba(91, 192, 222, 0.1)",
+          "borderColor": "rgb(91, 192, 222)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Authoritative",
+          "backgroundColor": "rgba(150, 150, 0, 0.1)",
+          "borderColor": "rgb(150, 150, 0)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Recursive",
+          "backgroundColor": "rgba(23, 162, 184, 0.1)",
+          "borderColor": "rgb(23, 162, 184)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Cached",
+          "backgroundColor": "rgba(111, 84, 153, 0.1)",
+          "borderColor": "rgb(111, 84, 153)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Blocked",
+          "backgroundColor": "rgba(255, 165, 0, 0.1)",
+          "borderColor": "rgb(255, 165, 0)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Dropped",
+          "backgroundColor": "rgba(30, 30, 30, 0.1)",
+          "borderColor": "rgb(30, 30, 30)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        {
+          "label": "Clients",
+          "backgroundColor": "rgba(51, 122, 183, 0.1)",
+          "borderColor": "rgb(51, 122, 183)",
+          "borderWidth": 2,
+          "fill": true,
+          "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        }
+      ]
+    },
+    "queryResponseChartData": {
+      "labels": ["Authoritative", "Recursive", "Cached", "Blocked", "Dropped"],
+      "datasets": [
+        {
+          "data": [0, 0, 0, 0, 0],
+          "backgroundColor": [
+            "rgba(150, 150, 0, 0.5)",
+            "rgba(23, 162, 184, 0.5)",
+            "rgba(111, 84, 153, 0.5)",
+            "rgba(255, 165, 0, 0.5)",
+            "rgba(7, 7, 7, 0.5)"
+          ]
+        }
+      ]
+    },
+    "queryTypeChartData": {
+      "labels": [],
+      "datasets": [
+        {
+          "data": [],
+          "backgroundColor": [
+            "rgba(102, 153, 255, 0.5)",
+            "rgba(92, 184, 92, 0.5)",
+            "rgba(7, 7, 7, 0.5)",
+            "rgba(91, 192, 222, 0.5)",
+            "rgba(150, 150, 0, 0.5)",
+            "rgba(23, 162, 184, 0.5)",
+            "rgba(111, 84, 153, 0.5)",
+            "rgba(255, 165, 0, 0.5)",
+            "rgba(51, 122, 183, 0.5)",
+            "rgba(150, 150, 150, 0.5)"
+          ]
+        }
+      ]
+    },
+    "protocolTypeChartData": {
+      "labels": [],
+      "datasets": [
+        {
+          "data": [],
+          "backgroundColor": [
+            "rgba(111, 84, 153, 0.5)",
+            "rgba(150, 150, 0, 0.5)",
+            "rgba(23, 162, 184, 0.5)",
+            "rgba(255, 165, 0, 0.5)",
+            "rgba(91, 192, 222, 0.5)"
+          ]
+        }
+      ]
+    },
+    "topClients": [],
+    "topDomains": [],
+    "topBlockedDomains": []
+  },
+  "server": "dns-server",
+  "status": "ok"
+}

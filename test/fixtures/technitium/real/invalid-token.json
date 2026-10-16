@@ -1,0 +1,5 @@
+{
+  "server": "dns-server",
+  "status": "invalid-token",
+  "errorMessage": "Invalid token or session expired."
+}

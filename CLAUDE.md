@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "pause"   # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +31,22 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only: src/app.js registers the handlers before connect()
+src/app.js                        every SDK handler -> the hub (also used by the tests)
+src/hub.js                        servers, reading timer, states, transitions -> scene events, commands, deduplicated logs
+src/devices.js                    one device per configured server: features, names (4 languages), values
+src/technitium/client.js          Technitium HTTP API client: bearer token, JSON `status`, errors by kind
+src/technitium/http.js            node:http/https request (self-signed certificates on request)
+src/technitium/model.js           reading settings, dashboard stats, update check, DHCP scopes and leases
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/widgets.js                    dashboard widget `technitium` (manifest `widgets`)
+src/texts.js                      connection, error, report, statistics and action texts (4 languages)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/store.js                      /data/technitium-state.json (update already announced)
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+                                  and helpers/fakeTechnitium.js (built from test/fixtures/technitium)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +76,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, widget content, feature names, manifest texts, and
+  `docs/en.md`, `docs/fr.md`, `docs/de.md`, `docs/es.md`, kept in sync
+  (`test/i18n.test.js` checks the languages and the doc sections).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -197,6 +205,55 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - Les filtres de scène ne font qu'égalité et appartenance : un seuil reste le travail d'un capteur.
 - **Les clés de widgets, de déclencheurs et d'actions sont figées une fois publiées.**
 - `gladys_version` `>=5.1.0` dès qu'il y a widgets, déclencheurs ou actions de scène.
+
+## Technitium (propre à ce dépôt)
+
+- **API HTTP** documentée par `APIDOCS.md` de TechnitiumSoftware/DnsServer ; vérifiée sur un vrai
+  serveur 15.6.1 (image Docker `technitium/dns-server`, réseau Docker isolé, 15-16/10/2026).
+  Réponses réelles dans `test/fixtures/technitium/real/`.
+- **Jeton** : créé dans la console web (menu de l'utilisateur → Create API Token) ou par
+  `/api/user/createToken?user=…&pass=…&tokenName=…`. Il n'expire pas. Envoyé en
+  `Authorization: Bearer` (15.0 et plus) ; le paramètre `token=` des versions antérieures n'est pas
+  utilisé (il finirait dans les journaux d'un proxy). `/api/user/session/get` **renvoie le jeton
+  en clair** : ne jamais journaliser une réponse brute.
+- **Toutes les réponses sont HTTP 200** avec un `status` JSON : `ok`, `error` (`errorMessage`,
+  « Access was denied. » pour une permission manquante, réponse réelle), `invalid-token`,
+  `2fa-required`. Un chemin inconnu : 404 sans corps. Permissions utiles : Dashboard (lecture),
+  Settings (lecture ; modification pour la pause), Cache (suppression), DhcpServer (lecture,
+  facultatif : sans elle, l'appareil n'a pas de baux DHCP, sans erreur).
+- **Pause du blocage, piège vérifié sur le vrai serveur** : `temporaryDisableBlocking?minutes=N`
+  arme un minuteur qui remet `EnableBlocking = true` à l'échéance. `settings/set` avec
+  `enableBlocking=false` **ne l'arrête pas** : pendant une pause, une désactivation « permanente » se rallume à
+  l'échéance. Seul `enableBlocking=true` arrête le minuteur (setter `DnsServer.EnableBlocking`).
+  D'où `true` puis `false` pour éteindre jusqu'à nouvel ordre. Et `temporaryDisableBlockingTill`
+  **reste rapporté** par `settings/get` après l'annulation (tant que l'échéance n'est pas passée
+  et que le blocage est éteint) : l'échéance périmée est mémorisée (`record.staleTill`) et
+  ignorée. `minutes=0` rallume aussitôt : ne jamais l'envoyer.
+- L'échéance périmée vient aussi d'une **reprise** depuis Gladys (`resume` la mémorise) ; elle est
+  **gardée dans `/data`** (`staleTill`), sinon un redémarrage afficherait un faux compte à rebours.
+- **Course lecture/commande** : une lecture lancée avant une commande (pause, reprise) peut finir
+  après elle, avec l'ancien état (le `checkForUpdate` peut prendre 10 s). `record.generation`,
+  incrémenté par chaque commande, fait garder l'état de la commande. Une commande refusée pour une
+  permission ne marque pas le serveur injoignable ; un 5xx sans JSON (proxy inverse devant un
+  Technitium arrêté) compte comme injoignable. Une erreur passagère du DHCP garde la dernière
+  valeur (sinon la fonctionnalité apparaît et disparaît).
+- **Statistiques** : `LastHour` = 60 minutes glissantes ; `LastDay` = les 24 heures **pleines
+  avant l'heure en cours** (`StatsManager.GetLastDayHourWiseStats`) : le jour a jusqu'à une heure
+  de retard, et vaut 0 sur un serveur qui démarre. Les compteurs instantanés (`zones`,
+  `blockListZones`, `blockedZones`, `cachedEntries`) sont lus dans `LastHour`.
+- `checkForUpdate` fait interroger le service de mise à jour de Technitium par le serveur :
+  toutes les 6 h seulement. Réponse sans mise à jour : `{ updateAvailable: false }` sans
+  `currentVersion`.
+- **DHCP** : la fonctionnalité « Baux DHCP » n'existe que si une étendue est active ; son apparition
+  ou sa disparition republie l'appareil (`structure_changed`, « Mettre à jour » proposé). Les baux
+  comptés sont ceux des étendues actives. Pas de présence par bail (décision : Gladys a d'autres
+  moyens, et suivre des MAC demanderait une configuration lourde).
+- Identité d'un appareil = **numéro d'emplacement** (1 à 3), comme Pi-hole : l'API n'expose pas
+  d'identifiant d'instance stable. Une adresse sans schéma ni port reçoit `:5380`.
+- États publiés par `publishChangedStates` du SDK avec un **heartbeat de 6 h** ; à la création
+  d'un appareil et à la reconnexion, `forgetPublishedStates` puis republication complète.
+- `en ligne` = transport de l'appareil (local / injoignable) et déclencheurs, pas une
+  fonctionnalité.
 
 ## Store
 

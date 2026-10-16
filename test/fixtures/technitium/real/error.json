@@ -1,0 +1,5 @@
+{
+  "server": "dns-server",
+  "status": "error",
+  "errorMessage": "Requested value 'Nope' was not found."
+}

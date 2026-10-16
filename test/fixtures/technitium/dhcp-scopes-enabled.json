@@ -1,0 +1,26 @@
+{
+  "response": {
+    "scopes": [
+      {
+        "name": "Default",
+        "enabled": true,
+        "startingAddress": "192.0.2.100",
+        "endingAddress": "192.0.2.200",
+        "subnetMask": "255.255.255.0",
+        "networkAddress": "192.0.2.0",
+        "broadcastAddress": "192.0.2.255"
+      },
+      {
+        "name": "Guests",
+        "enabled": false,
+        "startingAddress": "198.51.100.100",
+        "endingAddress": "198.51.100.200",
+        "subnetMask": "255.255.255.0",
+        "networkAddress": "198.51.100.0",
+        "broadcastAddress": "198.51.100.255"
+      }
+    ]
+  },
+  "server": "dns-server",
+  "status": "ok"
+}

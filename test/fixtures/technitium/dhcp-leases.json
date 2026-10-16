@@ -1,0 +1,48 @@
+{
+  "response": {
+    "leases": [
+      {
+        "scope": "Default",
+        "type": "Reserved",
+        "hardwareAddress": "02-00-00-00-00-01",
+        "clientIdentifier": "1-020000000001",
+        "address": "192.0.2.5",
+        "hostName": "nas.home",
+        "leaseObtained": "10/14/2026 17:52:51",
+        "leaseExpires": "10/21/2026 17:52:51"
+      },
+      {
+        "scope": "Default",
+        "type": "Dynamic",
+        "hardwareAddress": "02-00-00-00-00-02",
+        "clientIdentifier": "1-020000000002",
+        "address": "192.0.2.113",
+        "hostName": null,
+        "leaseObtained": "10/15/2026 16:41:46",
+        "leaseExpires": "10/16/2026 16:41:46"
+      },
+      {
+        "scope": "Default",
+        "type": "Dynamic",
+        "hardwareAddress": "02-00-00-00-00-03",
+        "clientIdentifier": "1-020000000003",
+        "address": "192.0.2.115",
+        "hostName": "phone.home",
+        "leaseObtained": "10/15/2026 12:19:03",
+        "leaseExpires": "10/16/2026 12:19:03"
+      },
+      {
+        "scope": "Guests",
+        "type": "Dynamic",
+        "hardwareAddress": "02-00-00-00-00-04",
+        "clientIdentifier": "1-020000000004",
+        "address": "198.51.100.120",
+        "hostName": null,
+        "leaseObtained": "10/01/2026 12:19:03",
+        "leaseExpires": "10/02/2026 12:19:03"
+      }
+    ]
+  },
+  "server": "dns-server",
+  "status": "ok"
+}
