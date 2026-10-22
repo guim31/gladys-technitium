@@ -1,6 +1,6 @@
 {
   "name": "gladys-technitium",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Technitium DNS Server integration for Gladys Assistant: blocking pause, statistics, DHCP leases, update alerts.",
   "type": "module",
